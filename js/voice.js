@@ -15,18 +15,24 @@ const Voice = (() => {
   let manifest = null;
 
   // ── Init ──────────────────────────────────────────────────
-  function init(base) {
+  function init(base, onReady) {
     audioBase = base;
-    loadManifest();
+    loadManifest(onReady);
   }
 
-  async function loadManifest() {
+  async function loadManifest(onReady) {
     try {
       const r = await fetch(`${audioBase}/audio/manifest.json`);
-      if (r.ok) manifest = await r.json();
+      if (r.ok) {
+        manifest = await r.json();
+        console.log('Manifest loaded:', Object.keys(manifest).length, 'entries');
+      }
     } catch(e) {
-      console.warn('No audio manifest found');
+      console.warn('No audio manifest found — audio cues disabled');
+      manifest = {}; // empty manifest — audio disabled gracefully
     }
+    // Always call onReady regardless of success/failure
+    if (onReady) onReady();
   }
 
   // ── Core play ─────────────────────────────────────────────
@@ -45,9 +51,22 @@ const Voice = (() => {
     let done = false;
     const finish = () => { if (done) return; done = true; if (onEnd) onEnd(); };
 
-    if (!manifest || !manifest[key]) {
+    if (!manifest) {
+      // Manifest not loaded yet — try once more then give up
+      setTimeout(() => {
+        if (manifest && manifest[key]) {
+          play(`${audioBase}/audio/${manifest[key]}`, finish);
+        } else {
+          finish(); // no audio, move on
+        }
+      }, 1000);
+      if (maxMs) setTimeout(finish, maxMs);
+      return;
+    }
+
+    if (!manifest[key]) {
       console.warn('Missing audio key:', key);
-      setTimeout(finish, 200);
+      setTimeout(finish, 50);
       return;
     }
     play(`${audioBase}/audio/${manifest[key]}`, finish);
