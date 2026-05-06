@@ -60,7 +60,8 @@ const Voice = (() => {
   function done(protoKey, cb)   { playKey('done_'  + protoKey, cb, 7000); }
 
   function round(protoKey, idx) {
-    playKey(protoKey + '_r' + idx, null);
+    // idx is 0-based from breath.js, manifest keys are 1-based (calm_r1, calm_r2...)
+    playKey(protoKey + '_r' + (idx + 1), null);
   }
 
   function phase(animType) {
