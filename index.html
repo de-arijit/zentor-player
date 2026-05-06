@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zentor — Your Session</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Josefin+Sans:wght@100;200;300&display=swap');
+
+  :root {
+    --void: #04040a;
+    --deep: #080818;
+    --surface: #0e0e28;
+    --glow: #6b5fff;
+    --glow2: #c084fc;
+    --glow3: #38bdf8;
+    --text: #e8e4f0;
+    --muted: #7a748a;
+    --gold: #d4a853;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 200;
+    letter-spacing: 0.08em;
+    overflow-x: hidden;
+  }
+
+  /* Background cosmos */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(107,95,255,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 50% at 80% 80%, rgba(192,132,252,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 30% at 50% 100%, rgba(56,189,248,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Starfield */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 80%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 50%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 90%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 35%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 75% 55%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5% 90%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 95% 30%, rgba(255,255,255,0.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px 60px;
+  }
+
+  /* Header */
+  .wordmark {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    font-size: 13px;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 60px;
+  }
+
+  /* Orb visualiser */
+  .orb-wrap {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    margin-bottom: 40px;
+  }
+
+  .orb {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, rgba(107,95,255,0.4), rgba(192,132,252,0.15) 50%, transparent 70%);
+    border: 1px solid rgba(107,95,255,0.3);
+    box-shadow:
+      0 0 40px rgba(107,95,255,0.2),
+      0 0 80px rgba(107,95,255,0.1),
+      inset 0 0 40px rgba(107,95,255,0.1);
+    transition: all 0.5s ease;
+  }
+
+  .orb-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(107,95,255,0.15);
+    animation: ring-expand 4s ease-in-out infinite;
+  }
+  .orb-ring:nth-child(2) { inset: -20px; animation-delay: 0s; }
+  .orb-ring:nth-child(3) { inset: -40px; animation-delay: 1.3s; }
+  .orb-ring:nth-child(4) { inset: -60px; animation-delay: 2.6s; }
+
+  @keyframes ring-expand {
+    0%, 100% { opacity: 0; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  .orb-pulse {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(107,95,255,0.3), transparent 70%);
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+  }
+
+  .playing .orb { animation: orb-breathe 4s ease-in-out infinite; }
+  .playing .orb-pulse { animation: pulse-wave 4s ease-in-out infinite; }
+
+  @keyframes orb-breathe {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(107,95,255,0.2), 0 0 80px rgba(107,95,255,0.1), inset 0 0 40px rgba(107,95,255,0.1); }
+    50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(107,95,255,0.4), 0 0 120px rgba(107,95,255,0.2), inset 0 0 60px rgba(107,95,255,0.2); }
+  }
+
+  @keyframes pulse-wave {
+    0%, 100% { opacity: 0; transform: scale(0.8); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+  }
+
+  /* Frequency badge */
+  .freq-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(107,95,255,0.12);
+    border: 1px solid rgba(107,95,255,0.25);
+    border-radius: 100px;
+    padding: 6px 18px;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--glow2);
+    margin-bottom: 24px;
+  }
+
+  .freq-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--glow2);
+    box-shadow: 0 0 6px var(--glow2);
+  }
+
+  /* Session info */
+  .session-state {
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .session-intent {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 26px;
+    text-align: center;
+    color: var(--text);
+    max-width: 320px;
+    line-height: 1.4;
+    margin-bottom: 40px;
+  }
+
+  /* Affirmation scroll */
+  .affirmation-box {
+    width: 100%;
+    max-width: 380px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .affirmation-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(107,95,255,0.4), transparent);
+  }
+
+  .affirmation-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-weight: 300;
+    text-align: center;
+    line-height: 1.6;
+    color: var(--text);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.8s ease;
+  }
+
+  .affirmation-text.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Timer */
+  .timer-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .timer-display {
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 100;
+    font-size: 52px;
+    letter-spacing: 0.15em;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  /* Progress arc */
+  .progress-ring-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+  }
+
+  .progress-ring-wrap svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-track {
+    fill: none;
+    stroke: rgba(107,95,255,0.1);
+    stroke-width: 2;
+  }
+
+  .progress-fill {
+    fill: none;
+    stroke: url(#arcGradient);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    transition: stroke-dashoffset 1s linear;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 40px;
+  }
+
+  .btn-play {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--glow), var(--glow2));
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 0 30px rgba(107,95,255,0.4), 0 4px 20px rgba(0,0,0,0.4);
+  }
+
+  .btn-play:hover { transform: scale(1.06); box-shadow: 0 0 50px rgba(107,95,255,0.6), 0 4px 30px rgba(0,0,0,0.5); }
+  .btn-play:active { transform: scale(0.97); }
+
+  .btn-play svg { width: 26px; height: 26px; fill: white; }
+
+  .btn-secondary {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    transition: all 0.2s ease;
+    font-family: 'Josefin Sans', sans-serif;
+    letter-spacing: 0.05em;
+  }
+
+  .btn-secondary:hover { border-color: rgba(107,95,255,0.4); color: var(--glow2); }
+
+  /* Volume slider */
+  .volume-wrap {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 40px;
+  }
+
+  .volume-label {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: linear-gradient(90deg, var(--glow) var(--val, 70%), rgba(255,255,255,0.1) var(--val, 70%));
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--glow2);
+    box-shadow: 0 0 8px var(--glow2);
+    cursor: pointer;
+  }
+
+  /* Frequency selector */
+  .freq-selector {
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 48px;
+  }
+
+  .freq-label {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .freq-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .freq-btn {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    color: var(--muted);
+  }
+
+  .freq-btn:hover {
+    border-color: rgba(107,95,255,0.35);
+    color: var(--text);
+    background: rgba(107,95,255,0.08);
+  }
+
+  .freq-btn.active {
+    border-color: rgba(107,95,255,0.6);
+    background: rgba(107,95,255,0.15);
+    color: var(--glow2);
+    box-shadow: 0 0 16px rgba(107,95,255,0.15);
+  }
+
+  .freq-name {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .freq-hz {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 13px;
+    font-style: italic;
+  }
+
+  /* Session preset selector */
+  .intent-section {
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 48px;
+  }
+
+  .intent-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .intent-btn {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    color: var(--muted);
+  }
+
+  .intent-btn:hover, .intent-btn.active {
+    border-color: rgba(107,95,255,0.35);
+    background: rgba(107,95,255,0.08);
+    color: var(--text);
+  }
+
+  .intent-btn.active {
+    border-color: rgba(107,95,255,0.55);
+    box-shadow: 0 0 16px rgba(107,95,255,0.12);
+  }
+
+  .intent-icon {
+    display: block;
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .intent-name {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .intent-desc {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.3;
+  }
+
+  /* Duration */
+  .duration-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+
+  .dur-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 10px;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: 'Josefin Sans', sans-serif;
+    font-weight: 200;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    transition: all 0.2s ease;
+    max-width: 380px;
+  }
+
+  .dur-btn:hover { border-color: rgba(107,95,255,0.3); color: var(--text); }
+  .dur-btn.active { border-color: rgba(107,95,255,0.55); background: rgba(107,95,255,0.12); color: var(--glow2); }
+
+  /* Footer reflection */
+  .reflection-section {
+    width: 100%;
+    max-width: 380px;
+    background: rgba(212,168,83,0.04);
+    border: 1px solid rgba(212,168,83,0.15);
+    border-radius: 16px;
+    padding: 24px 28px;
+    display: none;
+  }
+
+  .reflection-section.show { display: block; }
+
+  .reflection-label {
+    font-size: 9px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+    opacity: 0.8;
+  }
+
+  .reflection-q {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px;
+    font-style: italic;
+    line-height: 1.5;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .reflection-input {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    min-height: 80px;
+  }
+
+  .reflection-input:focus { border-color: rgba(212,168,83,0.3); }
+  .reflection-input::placeholder { color: var(--muted); font-style: italic; }
+
+  /* Waveform bars (decorative) */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 32px;
+    margin-bottom: 20px;
+    opacity: 0.4;
+  }
+
+  .waveform-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(to top, var(--glow), var(--glow2));
+    animation: wave 1.2s ease-in-out infinite;
+    height: 8px;
+  }
+
+  .playing .waveform-bar {
+    animation-play-state: running;
+  }
+
+  .waveform-bar:nth-child(1)  { animation-delay: 0.0s; }
+  .waveform-bar:nth-child(2)  { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(3)  { animation-delay: 0.2s; }
+  .waveform-bar:nth-child(4)  { animation-delay: 0.3s; }
+  .waveform-bar:nth-child(5)  { animation-delay: 0.4s; }
+  .waveform-bar:nth-child(6)  { animation-delay: 0.3s; }
+  .waveform-bar:nth-child(7)  { animation-delay: 0.2s; }
+  .waveform-bar:nth-child(8)  { animation-delay: 0.1s; }
+  .waveform-bar:nth-child(9)  { animation-delay: 0.0s; }
+
+  @keyframes wave {
+    0%, 100% { height: 4px; opacity: 0.3; }
+    50% { height: 28px; opacity: 1; }
+  }
+
+  /* headphones reminder */
+  .headphones-note {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .separator {
+    width: 100%;
+    max-width: 380px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    margin: 32px 0;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="wordmark">ZENTOR</div>
+
+  <!-- Orb visualiser -->
+  <div class="orb-wrap" id="orbWrap">
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb"></div>
+    <div class="orb-pulse"></div>
+  </div>
+
+  <div class="freq-badge">
+    <span class="freq-dot"></span>
+    <span id="badgeText">THETA · 6 Hz · Deep Manifestation</span>
+  </div>
+
+  <div class="session-state" id="sessionState">READY TO BEGIN</div>
+  <div class="session-intent" id="sessionIntent">What do you intend to call in today?</div>
+
+  <!-- Waveform -->
+  <div class="waveform" id="waveform">
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+    <div class="waveform-bar"></div>
+  </div>
+
+  <!-- Timer -->
+  <div class="timer-section">
+    <div class="timer-display" id="timerDisplay">20:00</div>
+    <div class="duration-row" id="durationRow">
+      <button class="dur-btn" onclick="setDuration(5)">5 MIN</button>
+      <button class="dur-btn active" onclick="setDuration(20)">20 MIN</button>
+      <button class="dur-btn" onclick="setDuration(40)">40 MIN</button>
+      <button class="dur-btn" onclick="setDuration(60)">60 MIN</button>
+    </div>
+  </div>
+
+  <!-- Play controls -->
+  <div class="headphones-note">🎧 Use headphones for binaural beats</div>
+  <div class="controls">
+    <button class="btn-secondary" onclick="resetSession()">↺</button>
+    <button class="btn-play" id="playBtn" onclick="togglePlay()">
+      <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="btn-secondary" onclick="skipForward()">15s</button>
+  </div>
+
+  <!-- Volume -->
+  <div class="volume-wrap">
+    <span class="volume-label">VOL</span>
+    <input type="range" min="0" max="100" value="70" id="volSlider" oninput="setVolume(this.value)">
+    <span class="volume-label" id="volDisplay">70</span>
+  </div>
+
+  <!-- Affirmation -->
+  <div class="affirmation-box">
+    <div class="affirmation-text" id="affirmText">Select your intention below to begin</div>
+  </div>
+
+  <div class="separator"></div>
+
+  <!-- Intent presets -->
+  <div class="intent-section">
+    <div class="freq-label">Choose your intention</div>
+    <div class="intent-grid">
+      <button class="intent-btn active" onclick="selectIntent('manifestation')">
+        <span class="intent-icon">✦</span>
+        <span class="intent-name">Manifestation</span>
+        <span class="intent-desc">Attract your desires into reality</span>
+      </button>
+      <button class="intent-btn" onclick="selectIntent('focus')">
+        <span class="intent-icon">◎</span>
+        <span class="intent-name">Deep Focus</span>
+        <span class="intent-desc">Lock in for peak performance</span>
+      </button>
+      <button class="intent-btn" onclick="selectIntent('sleep')">
+        <span class="intent-icon">◐</span>
+        <span class="intent-name">Sleep</span>
+        <span class="intent-desc">Drift into deep healing rest</span>
+      </button>
+      <button class="intent-btn" onclick="selectIntent('confidence')">
+        <span class="intent-icon">▲</span>
+        <span class="intent-name">Confidence</span>
+        <span class="intent-desc">Step into your power</span>
+      </button>
+      <button class="intent-btn" onclick="selectIntent('anxiety')">
+        <span class="intent-icon">∿</span>
+        <span class="intent-name">Calm Anxiety</span>
+        <span class="intent-desc">Release tension, find peace</span>
+      </button>
+      <button class="intent-btn" onclick="selectIntent('abundance')">
+        <span class="intent-icon">◈</span>
+        <span class="intent-name">Abundance</span>
+        <span class="intent-desc">Open to financial flow</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Frequency selector -->
+  <div class="freq-selector">
+    <div class="freq-label">Brainwave frequency</div>
+    <div class="freq-grid">
+      <button class="freq-btn" onclick="selectFreq('delta')">
+        <span class="freq-name">Delta</span>
+        <span class="freq-hz">2 Hz</span>
+      </button>
+      <button class="freq-btn active" onclick="selectFreq('theta')">
+        <span class="freq-name">Theta</span>
+        <span class="freq-hz">6 Hz</span>
+      </button>
+      <button class="freq-btn" onclick="selectFreq('alpha')">
+        <span class="freq-name">Alpha</span>
+        <span class="freq-hz">10 Hz</span>
+      </button>
+      <button class="freq-btn" onclick="selectFreq('beta')">
+        <span class="freq-name">Beta</span>
+        <span class="freq-hz">18 Hz</span>
+      </button>
+      <button class="freq-btn" onclick="selectFreq('gamma')">
+        <span class="freq-name">Gamma</span>
+        <span class="freq-hz">40 Hz</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Reflection (shown after session) -->
+  <div class="reflection-section" id="reflectionSection">
+    <div class="reflection-label">Session complete · Reflect</div>
+    <div class="reflection-q" id="reflectionQ">What shifted for you during this session?</div>
+    <textarea class="reflection-input" placeholder="Write freely..." rows="3"></textarea>
+  </div>
+
+</div>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6b5fff"/>
+      <stop offset="100%" style="stop-color:#c084fc"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<script>
+// =============================
+// ZENTOR — Audio Engine + UI
+// =============================
+
+let audioCtx = null;
+let leftOsc = null, rightOsc = null;
+let gainNode = null;
+let merger = null;
+let leftGain = null, rightGain = null;
+let isPlaying = false;
+let sessionDuration = 20 * 60; // seconds
+let elapsed = 0;
+let timerInterval = null;
+let affirmInterval = null;
+let affirmIndex = 0;
+let currentFreqConfig = null;
+let currentIntent = 'manifestation';
+
+// ---- Frequency configurations ----
+const FREQS = {
+  delta: { beat: 2,  base: 150, name: 'Delta', hz: '2 Hz', label: 'Deep Sleep · Subconscious' },
+  theta: { beat: 6,  base: 180, name: 'Theta', hz: '6 Hz', label: 'Deep Manifestation' },
+  alpha: { beat: 10, base: 200, name: 'Alpha', hz: '10 Hz', label: 'Relaxed Focus · Clarity' },
+  beta:  { beat: 18, base: 220, name: 'Beta',  hz: '18 Hz', label: 'Active Focus · Achievement' },
+  gamma: { beat: 40, base: 240, name: 'Gamma', hz: '40 Hz', label: 'Peak Performance' },
+};
+
+// ---- Affirmations per intent ----
+const AFFIRMATIONS = {
+  manifestation: [
+    "I am a powerful creator of my reality",
+    "Everything I desire is already on its way to me",
+    "I attract abundance in all its forms",
+    "My dreams are valid and achievable",
+    "The universe conspires in my favour",
+    "I am open to receiving all that is meant for me",
+    "What I envision, I become",
+  ],
+  focus: [
+    "My mind is clear, sharp, and present",
+    "I move through complexity with ease",
+    "Every moment of focus compounds into mastery",
+    "I am in complete command of my attention",
+    "Deep work flows through me effortlessly",
+    "I accomplish what matters most, today",
+    "My concentration is my superpower",
+  ],
+  sleep: [
+    "I release the day and surrender to rest",
+    "My body heals deeply as I sleep",
+    "I am safe, at peace, and completely relaxed",
+    "Each breath carries me deeper into calm",
+    "Tomorrow is handled — tonight I rest",
+    "Sleep restores me completely",
+    "I drift easily into healing darkness",
+  ],
+  confidence: [
+    "I trust myself completely",
+    "I show up fully as who I am",
+    "My presence is a gift to every room I enter",
+    "I am worthy of all I seek",
+    "I speak with clarity and conviction",
+    "I am becoming more of myself every day",
+    "Confidence is my natural state",
+  ],
+  anxiety: [
+    "This moment is safe",
+    "I breathe in calm, I breathe out tension",
+    "My nervous system is returning to peace",
+    "I am held — by earth, by breath, by life",
+    "Anxiety is energy — I transform it",
+    "I am greater than any fear",
+    "Peace lives within me, always",
+  ],
+  abundance: [
+    "Money flows to me freely and consistently",
+    "I am a magnet for financial opportunity",
+    "My value is immense and I claim it",
+    "Wealth is a tool — and I wield it wisely",
+    "Abundance is my birthright",
+    "Every day I grow richer in all ways",
+    "I deserve and receive extraordinary prosperity",
+  ],
+};
+
+const INTENT_META = {
+  manifestation: { label: 'Manifesting your vision', freq: 'theta', reflection: 'What felt possible during this session that didn\'t before?' },
+  focus:         { label: 'Entering deep focus',     freq: 'beta',  reflection: 'What will you build with this clarity?' },
+  sleep:         { label: 'Drifting into rest',       freq: 'delta', reflection: 'What are you releasing as you rest tonight?' },
+  confidence:    { label: 'Stepping into power',      freq: 'alpha', reflection: 'In what moment did you feel most yourself today?' },
+  anxiety:       { label: 'Releasing, breathing',     freq: 'alpha', reflection: 'What does your body need you to hear right now?' },
+  abundance:     { label: 'Opening to flow',          freq: 'gamma', reflection: 'What would you do if money were no object?' },
+};
+
+// ---- Init ----
+selectIntent('manifestation');
+updateTimerDisplay();
+showAffirmation();
+updateVolumeSlider(70);
+
+// ---- Audio ----
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  merger = audioCtx.createChannelMerger(2);
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = 0.7;
+  merger.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+}
+
+function startBinaural(freqKey) {
+  initAudio();
+  const cfg = FREQS[freqKey];
+  currentFreqConfig = cfg;
+
+  // Left ear oscillator
+  leftOsc = audioCtx.createOscillator();
+  leftGain = audioCtx.createGain();
+  leftOsc.frequency.value = cfg.base;
+  leftOsc.type = 'sine';
+  leftGain.gain.value = 1;
+  leftOsc.connect(leftGain);
+  leftGain.connect(merger, 0, 0);
+  leftOsc.start();
+
+  // Right ear oscillator (base + beat frequency)
+  rightOsc = audioCtx.createOscillator();
+  rightGain = audioCtx.createGain();
+  rightOsc.frequency.value = cfg.base + cfg.beat;
+  rightOsc.type = 'sine';
+  rightGain.gain.value = 1;
+  rightOsc.connect(rightGain);
+  rightGain.connect(merger, 0, 1);
+  rightOsc.start();
+}
+
+function stopBinaural() {
+  if (leftOsc)  { leftOsc.stop();  leftOsc = null; }
+  if (rightOsc) { rightOsc.stop(); rightOsc = null; }
+}
+
+// ---- Controls ----
+function togglePlay() {
+  if (isPlaying) {
+    pauseSession();
+  } else {
+    startSession();
+  }
+}
+
+function startSession() {
+  isPlaying = true;
+  document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  document.getElementById('orbWrap').classList.add('playing');
+  document.getElementById('waveform').classList.add('playing');
+  document.getElementById('sessionState').textContent = 'SESSION ACTIVE';
+
+  // Determine which frequency to use
+  const intentFreq = INTENT_META[currentIntent]?.freq || 'theta';
+  startBinaural(intentFreq);
+
+  timerInterval = setInterval(tickTimer, 1000);
+  affirmInterval = setInterval(cycleAffirmation, 12000);
+  cycleAffirmation();
+}
+
+function pauseSession() {
+  isPlaying = false;
+  document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+  document.getElementById('orbWrap').classList.remove('playing');
+  document.getElementById('waveform').classList.remove('playing');
+  document.getElementById('sessionState').textContent = 'PAUSED';
+  stopBinaural();
+  clearInterval(timerInterval);
+  clearInterval(affirmInterval);
+}
+
+function resetSession() {
+  pauseSession();
+  elapsed = 0;
+  updateTimerDisplay();
+  updateProgressRing(0);
+  document.getElementById('sessionState').textContent = 'READY TO BEGIN';
+  document.getElementById('reflectionSection').classList.remove('show');
+  showAffirmation();
+}
+
+function skipForward() {
+  elapsed = Math.min(elapsed + 15, sessionDuration);
+  updateTimerDisplay();
+  updateProgressRing(elapsed / sessionDuration);
+}
+
+function tickTimer() {
+  elapsed++;
+  updateTimerDisplay();
+  updateProgressRing(elapsed / sessionDuration);
+  if (elapsed >= sessionDuration) {
+    endSession();
+  }
+}
+
+function endSession() {
+  pauseSession();
+  document.getElementById('sessionState').textContent = 'SESSION COMPLETE';
+  document.getElementById('reflectionSection').classList.add('show');
+  const intent = currentIntent;
+  document.getElementById('reflectionQ').textContent = INTENT_META[intent]?.reflection || 'What shifted for you during this session?';
+}
+
+function updateTimerDisplay() {
+  const remaining = sessionDuration - elapsed;
+  const m = Math.floor(remaining / 60).toString().padStart(2, '0');
+  const s = (remaining % 60).toString().padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+
+function updateProgressRing(fraction) {
+  const fill = document.querySelector('.progress-fill');
+  if (fill) fill.style.strokeDashoffset = 220 * (1 - fraction);
+}
+
+function setDuration(mins) {
+  if (isPlaying) return;
+  sessionDuration = mins * 60;
+  elapsed = 0;
+  updateTimerDisplay();
+  document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function setVolume(val) {
+  if (gainNode) gainNode.gain.value = val / 100;
+  document.getElementById('volDisplay').textContent = val;
+  updateVolumeSlider(val);
+}
+
+function updateVolumeSlider(val) {
+  const slider = document.getElementById('volSlider');
+  slider.style.setProperty('--val', val + '%');
+}
+
+// ---- Affirmations ----
+function cycleAffirmation() {
+  const el = document.getElementById('affirmText');
+  const list = AFFIRMATIONS[currentIntent] || AFFIRMATIONS.manifestation;
+  el.classList.remove('visible');
+  setTimeout(() => {
+    el.textContent = list[affirmIndex % list.length];
+    el.classList.add('visible');
+    affirmIndex++;
+  }, 400);
+}
+
+function showAffirmation() {
+  const el = document.getElementById('affirmText');
+  const list = AFFIRMATIONS[currentIntent] || AFFIRMATIONS.manifestation;
+  el.textContent = list[0];
+  setTimeout(() => el.classList.add('visible'), 200);
+}
+
+// ---- Intent selection ----
+function selectIntent(intent) {
+  currentIntent = intent;
+  affirmIndex = 0;
+
+  document.querySelectorAll('.intent-btn').forEach(b => b.classList.remove('active'));
+  event?.target?.closest('.intent-btn')?.classList.add('active');
+
+  const meta = INTENT_META[intent];
+  document.getElementById('sessionIntent').textContent = meta.label + '…';
+
+  // Auto-select matching frequency
+  if (!isPlaying) {
+    selectFreqSilent(meta.freq);
+  }
+
+  showAffirmation();
+}
+
+// ---- Frequency selection ----
+function selectFreq(key) {
+  document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+  event.target.closest('.freq-btn').classList.add('active');
+
+  const cfg = FREQS[key];
+  document.getElementById('badgeText').textContent = `${cfg.name.toUpperCase()} · ${cfg.hz} · ${cfg.label}`;
+
+  if (isPlaying) {
+    stopBinaural();
+    startBinaural(key);
+  }
+}
+
+function selectFreqSilent(key) {
+  document.querySelectorAll('.freq-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.freq-btn').forEach(b => {
+    if (b.querySelector('.freq-name')?.textContent.toLowerCase() === key) {
+      b.classList.add('active');
+    }
+  });
+
+  const cfg = FREQS[key];
+  if (cfg) {
+    document.getElementById('badgeText').textContent = `${cfg.name.toUpperCase()} · ${cfg.hz} · ${cfg.label}`;
+  }
+}
+
+// Volume slider CSS fill
+document.getElementById('volSlider').addEventListener('input', function() {
+  this.style.setProperty('--val', this.value + '%');
+});
+</script>
+</body>
+</html>
