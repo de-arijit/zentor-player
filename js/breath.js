@@ -53,8 +53,11 @@ const BreathGate = (() => {
     running = true; paused = false;
     round = 0; phaseIdx = 0;
 
-    // Play intro audio — start breathing after it finishes or 9s max
-    Voice.intro(proto, () => runPhase(), 9000);
+    // Manifest is loaded by this point (loading screen ensured it)
+    // Play intro — then start phases. 6s max in case audio is slow.
+    let started = false;
+    const begin = () => { if (!started) { started = true; runPhase(); } };
+    Voice.intro(proto, begin, 6000);
   }
 
   function pauseResume() {
@@ -175,7 +178,15 @@ const BreathStandalone = (() => {
     running = true; paused = false; round = 0; phaseIdx = 0;
     const btn = document.getElementById('bwStartBtn');
     btn.textContent = 'Pause'; btn.onclick = togglePause;
-    Voice.intro(proto, () => runPhase(), 9000);
+
+    let started = false;
+    function beginPhase() {
+      if (started) return;
+      started = true;
+      runPhase();
+    }
+    Voice.intro(proto, beginPhase, 5000);
+    setTimeout(beginPhase, 5000);
   }
 
   function togglePause() {
