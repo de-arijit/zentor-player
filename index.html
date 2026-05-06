@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Zentor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@100;200;300;400&family=DM+Mono:wght@300;400&display=swap');
+
+:root {
+  --void: #03030a;
+  --deep: #07071a;
+  --surface: #0d0d28;
+  --glow: #5b4fff;
+  --glow2: #b06fff;
+  --glow3: #38d9f5;
+  --gold: #c8a84b;
+  --text: #e2ddf5;
+  --muted: #6a6285;
+  --dim: #2a2545;
+  --danger: #ff6b6b;
+
+  /* Breathwork colours per protocol */
+  --breath-calm: #4a9eff;
+  --breath-focus: #7bde8a;
+  --breath-reset: #ff9f4a;
+  --breath-box: #7bde8a;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--void);
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  font-weight: 200;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 15%, rgba(91,79,255,.13) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 85% 85%, rgba(176,111,255,.09) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 110%, rgba(56,217,245,.07) 0%, transparent 50%);
+  pointer-events: none; z-index: 0;
+}
+
+/* ── SCREENS ── */
+.screen {
+  position: fixed; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 1; padding: 24px;
+  opacity: 0; pointer-events: none;
+  transition: opacity .6s ease;
+}
+.screen.active { opacity: 1; pointer-events: all; }
+
+/* ── TYPOGRAPHY ── */
+.wordmark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 11px; letter-spacing: .55em;
+  text-transform: uppercase; color: var(--muted);
+  position: absolute; top: 28px; left: 50%;
+  transform: translateX(-50%);
+}
+
+.screen-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 300; font-style: italic;
+  text-align: center; line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.screen-sub {
+  font-size: 11px; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--muted);
+  text-align: center; margin-bottom: 40px;
+}
+
+/* ── ORB ── */
+.orb-container {
+  position: relative;
+  width: clamp(180px, 45vw, 260px);
+  height: clamp(180px, 45vw, 260px);
+  margin-bottom: 32px; flex-shrink: 0;
+}
+
+.orb-ring {
+  position: absolute; border-radius: 50%;
+  border: 1px solid rgba(91,79,255,.12);
+}
+.orb-ring:nth-child(1) { inset: -18px; animation: ring-pulse 4s ease-in-out infinite 0s; }
+.orb-ring:nth-child(2) { inset: -36px; animation: ring-pulse 4s ease-in-out infinite 1.3s; }
+.orb-ring:nth-child(3) { inset: -54px; animation: ring-pulse 4s ease-in-out infinite 2.6s; }
+
+@keyframes ring-pulse {
+  0%,100% { opacity:0; transform:scale(.95); }
+  50%      { opacity:1; transform:scale(1.05); }
+}
+
+.orb {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%,
+    rgba(91,79,255,.45), rgba(176,111,255,.18) 50%, transparent 72%);
+  border: 1px solid rgba(91,79,255,.3);
+  box-shadow: 0 0 48px rgba(91,79,255,.22),
+              0 0 96px rgba(91,79,255,.1),
+              inset 0 0 48px rgba(91,79,255,.12);
+  transition: transform .4s ease, box-shadow .4s ease;
+}
+
+/* Breathing state — orb scales with breath */
+.orb.inhale  { animation: orb-inhale var(--inhale-dur, 4s) ease-in-out forwards; }
+.orb.hold    { animation: orb-hold var(--hold-dur, 4s) ease-in-out forwards; }
+.orb.exhale  { animation: orb-exhale var(--exhale-dur, 8s) ease-in-out forwards; }
+.orb.hold2   { animation: orb-hold2 var(--hold2-dur, 0s) ease-in-out forwards; }
+.orb.playing { animation: orb-breathe 5s ease-in-out infinite; }
+
+@keyframes orb-inhale {
+  from { transform:scale(.85); }
+  to   { transform:scale(1.18); }
+}
+@keyframes orb-hold {
+  from,to { transform:scale(1.18); }
+}
+@keyframes orb-exhale {
+  from { transform:scale(1.18); }
+  to   { transform:scale(.85); }
+}
+@keyframes orb-hold2 {
+  from,to { transform:scale(.85); }
+}
+@keyframes orb-breathe {
+  0%,100% { transform:scale(1); box-shadow: 0 0 48px rgba(91,79,255,.22), 0 0 96px rgba(91,79,255,.1), inset 0 0 48px rgba(91,79,255,.12); }
+  50% { transform:scale(1.06); box-shadow: 0 0 72px rgba(91,79,255,.42), 0 0 140px rgba(91,79,255,.2), inset 0 0 72px rgba(91,79,255,.22); }
+}
+
+/* Protocol-coloured orb tint */
+.orb.calm-tint  { background: radial-gradient(circle at 35% 35%, rgba(74,158,255,.45), rgba(74,158,255,.18) 50%, transparent 72%); border-color: rgba(74,158,255,.3); }
+.orb.focus-tint { background: radial-gradient(circle at 35% 35%, rgba(123,222,138,.4), rgba(123,222,138,.15) 50%, transparent 72%); border-color: rgba(123,222,138,.3); }
+.orb.reset-tint { background: radial-gradient(circle at 35% 35%, rgba(255,159,74,.42), rgba(255,159,74,.16) 50%, transparent 72%); border-color: rgba(255,159,74,.3); }
+
+/* ── BREATH CUE ── */
+.breath-cue {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(28px, 7vw, 42px);
+  font-style: italic; font-weight: 300;
+  text-align: center; min-height: 56px;
+  letter-spacing: .05em;
+  transition: opacity .4s ease, transform .4s ease;
+}
+
+.breath-counter {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px; color: var(--muted);
+  letter-spacing: .2em; text-align: center;
+  margin-top: 8px; min-height: 20px;
+}
+
+.breath-phase-label {
+  font-size: 9px; letter-spacing: .35em;
+  text-transform: uppercase; color: var(--muted);
+  text-align: center; margin-top: 12px;
+  min-height: 14px;
+}
+
+/* ── BADGES ── */
+.freq-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(91,79,255,.1);
+  border: 1px solid rgba(91,79,255,.22);
+  border-radius: 100px; padding: 5px 16px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px; letter-spacing: .28em;
+  color: var(--glow2); margin-bottom: 20px;
+}
+
+.freq-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--glow2);
+  box-shadow: 0 0 5px var(--glow2);
+}
+
+/* ── TIMER ── */
+.timer-display {
+  font-family: 'Jost', sans-serif;
+  font-weight: 100; font-size: clamp(44px, 12vw, 64px);
+  letter-spacing: .12em; line-height: 1;
+  margin: 8px 0 24px;
+}
+
+/* ── PROGRESS ARC ── */
+.progress-wrap { position: relative; width: 72px; height: 72px; margin-bottom: 20px; }
+.progress-wrap svg { transform: rotate(-90deg); }
+.arc-track { fill:none; stroke:rgba(91,79,255,.1); stroke-width:2; }
+.arc-fill  { fill:none; stroke:url(#arcG); stroke-width:2; stroke-linecap:round;
+             stroke-dasharray:204; stroke-dashoffset:204; transition:stroke-dashoffset 1s linear; }
+
+/* ── AFFIRMATION ── */
+.affirmation-box {
+  width: 100%; max-width: 340px;
+  background: rgba(255,255,255,.02);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px; padding: 20px 24px;
+  margin-bottom: 28px; min-height: 72px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.affirmation-box::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background: linear-gradient(90deg, transparent, rgba(91,79,255,.4), transparent);
+}
+.affirmation-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(16px,4vw,20px); font-weight:300;
+  text-align:center; line-height:1.6;
+  opacity:0; transform:translateY(6px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.affirmation-text.visible { opacity:1; transform:translateY(0); }
+
+/* ── WAVEFORM ── */
+.waveform {
+  display:flex; align-items:center; gap:3px;
+  height:28px; margin-bottom:16px; opacity:.35;
+}
+.waveform-bar {
+  width:3px; border-radius:2px;
+  background: linear-gradient(to top, var(--glow), var(--glow2));
+  height:5px; animation: wave-idle 2s ease-in-out infinite;
+}
+.playing-state .waveform-bar { animation:wave-play 1.4s ease-in-out infinite; }
+@keyframes wave-idle { 0%,100%{height:5px} 50%{height:10px} }
+@keyframes wave-play {
+  0%,100%{height:4px} 50%{height:24px}
+}
+.waveform-bar:nth-child(1){animation-delay:0s}
+.waveform-bar:nth-child(2){animation-delay:.1s}
+.waveform-bar:nth-child(3){animation-delay:.2s}
+.waveform-bar:nth-child(4){animation-delay:.3s}
+.waveform-bar:nth-child(5){animation-delay:.25s}
+.waveform-bar:nth-child(6){animation-delay:.15s}
+.waveform-bar:nth-child(7){animation-delay:.05s}
+
+/* ── BUTTONS ── */
+.btn-play {
+  width: 70px; height: 70px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--glow), var(--glow2));
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 32px rgba(91,79,255,.45), 0 4px 20px rgba(0,0,0,.4);
+  transition: transform .2s ease, box-shadow .2s ease;
+  flex-shrink: 0;
+}
+.btn-play:hover  { transform:scale(1.07); box-shadow:0 0 52px rgba(91,79,255,.65),0 4px 28px rgba(0,0,0,.5); }
+.btn-play:active { transform:scale(.97); }
+.btn-play svg { width:26px; height:26px; fill:white; }
+
+.btn-secondary {
+  background: none;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 50%; width: 44px; height: 44px;
+  cursor: pointer; display:flex; align-items:center; justify-content:center;
+  color: var(--muted); font-size:13px; font-family:'Jost',sans-serif;
+  transition: all .2s ease; letter-spacing:.05em;
+}
+.btn-secondary:hover { border-color:rgba(91,79,255,.4); color:var(--glow2); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--glow), var(--glow2));
+  border: none; border-radius: 100px;
+  padding: 14px 36px; cursor: pointer;
+  font-family: 'Jost', sans-serif;
+  font-weight: 300; font-size: 12px;
+  letter-spacing: .25em; text-transform: uppercase;
+  color: white;
+  box-shadow: 0 0 28px rgba(91,79,255,.35);
+  transition: all .2s ease;
+}
+.btn-primary:hover { transform:translateY(-2px); box-shadow:0 0 42px rgba(91,79,255,.55); }
+
+.btn-ghost {
+  background: none;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 100px; padding: 11px 28px;
+  cursor: pointer; font-family:'Jost',sans-serif;
+  font-weight:300; font-size:11px;
+  letter-spacing:.25em; text-transform:uppercase;
+  color: var(--muted); transition: all .2s ease;
+}
+.btn-ghost:hover { border-color:rgba(91,79,255,.35); color:var(--text); }
+
+.controls { display:flex; align-items:center; gap:24px; margin-bottom:28px; }
+
+/* ── VOLUME ── */
+.volume-row {
+  display:flex; align-items:center; gap:12px;
+  width:100%; max-width:300px; margin-bottom:24px;
+}
+.vol-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:.3em; color:var(--muted); }
+input[type=range] {
+  flex:1; -webkit-appearance:none;
+  height:2px; background:linear-gradient(90deg, var(--glow) var(--val,70%), rgba(255,255,255,.08) var(--val,70%));
+  border-radius:2px; outline:none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance:none; width:13px; height:13px; border-radius:50%;
+  background:var(--glow2); box-shadow:0 0 7px var(--glow2); cursor:pointer;
+}
+
+/* ── PROTOCOL CARDS ── */
+.protocol-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:10px; width:100%; max-width:360px; margin-bottom:32px;
+}
+.protocol-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius:14px; padding:18px 12px;
+  cursor:pointer; text-align:center;
+  transition: all .2s ease;
+}
+.protocol-card:hover, .protocol-card.active {
+  border-color:rgba(91,79,255,.4);
+  background: rgba(91,79,255,.1);
+  transform:translateY(-2px);
+}
+.protocol-card.active { box-shadow:0 0 18px rgba(91,79,255,.15); }
+
+.pc-icon { font-size:22px; margin-bottom:8px; display:block; }
+.pc-name {
+  font-size:9px; letter-spacing:.2em; text-transform:uppercase;
+  color:var(--text); margin-bottom:4px; display:block;
+}
+.pc-desc {
+  font-family:'Cormorant Garamond',serif; font-style:italic;
+  font-size:11px; color:var(--muted); line-height:1.4; display:block;
+}
+.pc-pattern {
+  font-family:'DM Mono',monospace; font-size:9px;
+  color:var(--muted); margin-top:6px; display:block;
+  letter-spacing:.1em;
+}
+
+/* ── HEADPHONES NOTE ── */
+.headphones-note {
+  font-size:10px; letter-spacing:.18em; color:var(--muted);
+  text-align:center; margin-bottom:24px;
+}
+
+/* ── SESSION STATE ── */
+.session-state-label {
+  font-size:9px; letter-spacing:.35em;
+  text-transform:uppercase; color:var(--muted);
+  margin-bottom:10px; text-align:center;
+}
+
+.session-intent-title {
+  font-family:'Cormorant Garamond',serif;
+  font-style:italic; font-size:clamp(20px,5vw,28px);
+  font-weight:300; text-align:center;
+  line-height:1.3; margin-bottom:28px;
+  max-width:300px;
+}
+
+/* ── DURATION PILLS ── */
+.duration-row {
+  display:flex; gap:8px; margin-bottom:28px;
+}
+.dur-btn {
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:100px; padding:8px 16px;
+  cursor:pointer; color:var(--muted);
+  font-family:'Jost',sans-serif; font-weight:200;
+  font-size:10px; letter-spacing:.18em;
+  transition:all .2s ease;
+}
+.dur-btn:hover { border-color:rgba(91,79,255,.3); color:var(--text); }
+.dur-btn.active { border-color:rgba(91,79,255,.55); background:rgba(91,79,255,.12); color:var(--glow2); }
+
+/* ── REFLECTION ── */
+.reflection-section {
+  width:100%; max-width:340px;
+  background:rgba(200,168,75,.04);
+  border:1px solid rgba(200,168,75,.15);
+  border-radius:16px; padding:22px 24px;
+  margin-top:16px;
+}
+.reflection-label {
+  font-size:9px; letter-spacing:.32em;
+  text-transform:uppercase; color:var(--gold);
+  opacity:.8; margin-bottom:10px;
+}
+.reflection-q {
+  font-family:'Cormorant Garamond',serif;
+  font-size:17px; font-style:italic;
+  line-height:1.55; color:var(--text); margin-bottom:14px;
+}
+.reflection-input {
+  width:100%; background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:12px 14px;
+  color:var(--text); font-family:'Cormorant Garamond',serif;
+  font-size:14px; resize:none; outline:none; line-height:1.5;
+  min-height:72px;
+}
+.reflection-input:focus { border-color:rgba(200,168,75,.3); }
+.reflection-input::placeholder { color:var(--muted); font-style:italic; }
+
+/* ── SEPARATOR ── */
+.sep {
+  width:100%; max-width:340px; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);
+  margin:24px 0;
+}
+
+/* ── SKIP LINK ── */
+.skip-link {
+  font-size:10px; letter-spacing:.2em;
+  color:var(--muted); text-decoration:none;
+  text-transform:uppercase; cursor:pointer;
+  margin-top:16px; border-bottom:1px solid transparent;
+  transition:all .2s ease;
+}
+.skip-link:hover { color:var(--text); border-color:var(--muted); }
+
+/* ── ROUNDS INDICATOR ── */
+.rounds-row {
+  display:flex; gap:8px; margin-bottom:24px;
+  justify-content:center;
+}
+.round-dot {
+  width:8px; height:8px; border-radius:50%;
+  background:rgba(255,255,255,.1);
+  transition:background .3s ease;
+}
+.round-dot.done { background:var(--glow2); box-shadow:0 0 6px var(--glow2); }
+.round-dot.active { background:var(--glow); box-shadow:0 0 8px var(--glow); animation:dot-pulse 1s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.3)} }
+
+/* ── HOME SCREEN ── */
+#homeScreen { justify-content:flex-start; padding-top:80px; gap:0; overflow-y:auto; }
+.home-content { display:flex; flex-direction:column; align-items:center; width:100%; max-width:380px; padding-bottom:40px; }
+
+/* ── SCROLL CONTAINER ── */
+.scroll-body { overflow-y:auto; width:100%; max-width:380px; display:flex; flex-direction:column; align-items:center; }
+
+</style>
+</head>
+<body>
+
+<!-- SVG defs -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="arcG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#5b4fff"/>
+      <stop offset="100%" style="stop-color:#b06fff"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 1 — BREATHWORK GATE (pre-session)
+     ═══════════════════════════════════════════ -->
+<div class="screen active" id="breathScreen">
+  <div class="wordmark">Zentor</div>
+
+  <div class="orb-container">
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb" id="breathOrb"></div>
+  </div>
+
+  <div class="breath-cue" id="breathCue">Settle in</div>
+  <div class="breath-counter" id="breathCounter"></div>
+  <div class="breath-phase-label" id="breathPhaseLabel">Before your session begins</div>
+
+  <div style="margin-top:28px; display:flex; flex-direction:column; align-items:center; gap:16px;">
+    <div class="rounds-row" id="roundsRow">
+      <div class="round-dot" id="rd0"></div>
+      <div class="round-dot" id="rd1"></div>
+      <div class="round-dot" id="rd2"></div>
+    </div>
+
+    <button class="btn-primary" id="breathStartBtn" onclick="startBreathing()">Begin Breathing</button>
+    <span class="skip-link" id="skipBreathLink" onclick="skipToSession()" style="display:none">Skip to session →</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 2 — SESSION PLAYER
+     ═══════════════════════════════════════════ -->
+<div class="screen" id="sessionScreen">
+  <div class="wordmark">Zentor</div>
+
+  <div class="scroll-body">
+    <div class="freq-badge">
+      <span class="freq-dot"></span>
+      <span id="badgeText">THETA · 6 Hz · Deep Manifestation</span>
+    </div>
+
+    <div class="session-state-label" id="sessionStateLabel">READY</div>
+    <div class="session-intent-title" id="sessionTitle">Your Session</div>
+
+    <div class="orb-container">
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-ring"></div>
+      <div class="orb" id="sessionOrb"></div>
+    </div>
+
+    <div class="waveform" id="waveform">
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+      <div class="waveform-bar"></div>
+    </div>
+
+    <div class="timer-display" id="timerDisplay">20:00</div>
+
+    <div class="duration-row" id="durationRow">
+      <button class="dur-btn" onclick="setDuration(10)">10</button>
+      <button class="dur-btn active" onclick="setDuration(20)">20</button>
+      <button class="dur-btn" onclick="setDuration(40)">40</button>
+      <button class="dur-btn" onclick="setDuration(60)">60</button>
+    </div>
+
+    <div class="headphones-note">🎧 Headphones required for binaural beats</div>
+
+    <div class="controls">
+      <button class="btn-secondary" onclick="resetSession()">↺</button>
+      <button class="btn-play" id="playBtn" onclick="togglePlay()">
+        <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="btn-secondary" onclick="skipForward()">+15</button>
+    </div>
+
+    <div class="volume-row">
+      <span class="vol-label">VOL</span>
+      <input type="range" min="0" max="100" value="70" id="volSlider" oninput="setVolume(this.value)">
+      <span class="vol-label" id="volDisplay">70</span>
+    </div>
+
+    <div class="affirmation-box">
+      <div class="affirmation-text" id="affirmText">Loading your session...</div>
+    </div>
+
+    <div id="reflectionSection" style="display:none; width:100%; max-width:340px;">
+      <div class="sep"></div>
+      <div class="reflection-section">
+        <div class="reflection-label">Session complete · Reflect</div>
+        <div class="reflection-q" id="reflectionQ">What did you notice in your body during this session?</div>
+        <textarea class="reflection-input" placeholder="Write freely..." rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 3 — STANDALONE BREATHWORK
+     ═══════════════════════════════════════════ -->
+<div class="screen" id="breathworkScreen">
+  <div class="wordmark">Zentor · Breathwork</div>
+
+  <div class="orb-container">
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb" id="bwOrb"></div>
+  </div>
+
+  <div class="breath-cue" id="bwCue">Choose your practice</div>
+  <div class="breath-counter" id="bwCounter"></div>
+  <div class="breath-phase-label" id="bwPhaseLabel"></div>
+
+  <div class="rounds-row" id="bwRoundsRow" style="margin-top:16px;">
+    <div class="round-dot" id="bwr0"></div>
+    <div class="round-dot" id="bwr1"></div>
+    <div class="round-dot" id="bwr2"></div>
+    <div class="round-dot" id="bwr3"></div>
+    <div class="round-dot" id="bwr4"></div>
+  </div>
+
+  <div class="sep" style="max-width:300px;"></div>
+
+  <div class="protocol-grid" id="protocolGrid">
+    <div class="protocol-card active" id="pc-calm" onclick="selectProtocol('calm')">
+      <span class="pc-icon">🌊</span>
+      <span class="pc-name">Calm</span>
+      <span class="pc-desc">Release tension, find peace</span>
+      <span class="pc-pattern">4 · 8</span>
+    </div>
+    <div class="protocol-card" id="pc-focus" onclick="selectProtocol('focus')">
+      <span class="pc-icon">◎</span>
+      <span class="pc-name">Focus</span>
+      <span class="pc-desc">Calm alertness, clarity</span>
+      <span class="pc-pattern">4 · 4 · 4 · 4</span>
+    </div>
+    <div class="protocol-card" id="pc-reset" onclick="selectProtocol('reset')">
+      <span class="pc-icon">⚡</span>
+      <span class="pc-name">Reset</span>
+      <span class="pc-desc">Acute stress relief</span>
+      <span class="pc-pattern">2+1 · 8</span>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:12px; margin-top:8px;">
+    <button class="btn-primary" id="bwStartBtn" onclick="startStandaloneBreathing()">Begin</button>
+    <button class="btn-ghost" onclick="stopStandaloneBreathing()">Stop</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// ZENTOR PLAYER — Complete Audio + Breath Engine
+// ═══════════════════════════════════════════════
+
+// ── URL params ─────────────────────────────────
+const P = new URLSearchParams(location.search);
+const MODE       = P.get('mode') || 'session';    // session | breathe | reset
+const INTENT     = P.get('intent') || 'theta';
+const FREQ_KEY   = P.get('freq') || 'theta';
+const DURATION   = parseInt(P.get('dur') || '20');
+const SESSION_TITLE = decodeURIComponent(P.get('title') || 'Your Session');
+const AFFIRMATIONS  = [0,1,2].map(i => P.get('a'+i)).filter(Boolean);
+const BREATH_PROTO  = P.get('protocol') || null;  // override breathwork protocol
+const SKIP_BREATH   = P.get('skip_breath') === '1';
+
+// ── Frequency configs ──────────────────────────
+const FREQS = {
+  delta: { beat:2,  base:150, name:'Delta', hz:'2 Hz', label:'Deep Sleep · Healing',     breathProto:'calm'  },
+  theta: { beat:6,  base:180, name:'Theta', hz:'6 Hz', label:'Deep Manifestation',        breathProto:'calm'  },
+  alpha: { beat:10, base:200, name:'Alpha', hz:'10 Hz', label:'Relaxed Focus · Clarity',  breathProto:'focus' },
+  beta:  { beat:18, base:220, name:'Beta',  hz:'18 Hz', label:'Active Focus · Achievement',breathProto:'focus' },
+  gamma: { beat:40, base:240, name:'Gamma', hz:'40 Hz', label:'Peak Performance',          breathProto:'focus' },
+};
+
+// ── Breathwork protocols ───────────────────────
+const PROTOCOLS = {
+  calm: {
+    name:'4:8 Extended Exhale',
+    color: 'calm-tint',
+    accentColor: 'var(--breath-calm)',
+    rounds: 3,
+    phases: [
+      { name:'Inhale',  dur:4, cue:'Breathe in',     type:'inhale' },
+      { name:'Exhale',  dur:8, cue:'Breathe out',    type:'exhale' },
+    ],
+    desc: 'Activates vagal brake. Shifts nervous system toward parasympathetic state — the prerequisite for all deeper work.',
+  },
+  focus: {
+    name:'Box Breathing 4-4-4-4',
+    color: 'focus-tint',
+    accentColor: 'var(--breath-focus)',
+    rounds: 4,
+    phases: [
+      { name:'Inhale',  dur:4, cue:'Breathe in',     type:'inhale' },
+      { name:'Hold',    dur:4, cue:'Hold',            type:'hold'   },
+      { name:'Exhale',  dur:4, cue:'Breathe out',    type:'exhale' },
+      { name:'Hold',    dur:4, cue:'Hold',            type:'hold2'  },
+    ],
+    desc: 'Frontal-midline theta. Balances sympathetic-parasympathetic activity. Used before high-stakes situations.',
+  },
+  reset: {
+    name:'Physiological Sigh',
+    color: 'reset-tint',
+    accentColor: 'var(--breath-reset)',
+    rounds: 3,
+    phases: [
+      { name:'First inhale',  dur:2, cue:'Inhale',        type:'inhale' },
+      { name:'Second inhale', dur:1, cue:'Top up',         type:'inhale' },
+      { name:'Long exhale',   dur:8, cue:'Breathe out',   type:'exhale' },
+    ],
+    desc: 'Fastest acute stress relief. Deflates alveoli. Stimulates vagal brake within 30 seconds. For immediate calm.',
+  },
+};
+
+// ── Default affirmations ───────────────────────
+const DEFAULT_AFFIRMATIONS = {
+  theta: [
+    "There was a time I held my ground — and the room shifted toward me",
+    "I am learning to let my nervous system lead before my story does",
+    "What I release today, I no longer carry tomorrow",
+  ],
+  alpha: [
+    "I have navigated difficulty before and arrived on the other side",
+    "I am building the capacity to stay present under pressure",
+    "My calm is not performed — it is practised",
+  ],
+  gamma: [
+    "The version of me I am rehearsing is already real",
+    "I act from the new belief even before it feels natural",
+    "Each action that contradicts the old story rewrites it",
+  ],
+  delta: [
+    "I give my nervous system permission to fully rest",
+    "Sleep is not absence — it is the work continuing without me",
+    "I release the day completely",
+  ],
+  beta: [
+    "My focus is a trained capacity, not a mood",
+    "I bring deliberate attention to what matters most right now",
+    "Clarity comes from regulation, not force",
+  ],
+};
+
+// ── State ──────────────────────────────────────
+let audioCtx = null;
+let leftOsc = null, rightOsc = null;
+let gainNode = null, leftGain = null, rightGain = null, merger = null;
+let isPlaying = false;
+let sessionDuration = DURATION * 60;
+let elapsed = 0;
+let timerInterval = null;
+let affirmInterval = null;
+let affirmIdx = 0;
+
+// Breath state
+let breathInterval = null;
+let breathPhaseIdx = 0;
+let breathRound = 0;
+let currentProto = null;
+let breathCountdown = 0;
+let isBreathing = false;
+let breathingDone = false;
+let bwRoundsTotal = 5;
+let bwRound = 0;
+let bwPhaseIdx = 0;
+let bwInterval = null;
+
+// ── INIT ──────────────────────────────────────
+window.addEventListener('load', () => {
+  initSession();
+  updateVolumeSlider(70);
+});
+
+function initSession() {
+  const freq = FREQS[FREQ_KEY] || FREQS.theta;
+
+  // Badge
+  document.getElementById('badgeText').textContent =
+    `${freq.name.toUpperCase()} · ${freq.hz} · ${freq.label}`;
+
+  // Title
+  document.getElementById('sessionTitle').textContent = SESSION_TITLE;
+
+  // Timer
+  sessionDuration = DURATION * 60;
+  updateTimerDisplay();
+
+  // Highlight correct duration button
+  document.querySelectorAll('.dur-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === DURATION);
+  });
+
+  // Affirmations
+  const affList = AFFIRMATIONS.length ? AFFIRMATIONS : (DEFAULT_AFFIRMATIONS[FREQ_KEY] || DEFAULT_AFFIRMATIONS.theta);
+  showAffirmation(affList[0]);
+
+  // Determine breathwork protocol
+  const proto = BREATH_PROTO || freq.breathProto || 'calm';
+
+  if (MODE === 'breathe') {
+    // Go straight to standalone breathwork screen
+    showScreen('breathworkScreen');
+    if (BREATH_PROTO) selectProtocol(BREATH_PROTO);
+    return;
+  }
+
+  if (MODE === 'reset') {
+    // Emergency reset — skip straight to session with physiological sigh first
+    showScreen('breathScreen');
+    setupBreathGate('reset');
+    return;
+  }
+
+  // Normal session flow
+  if (SKIP_BREATH) {
+    showScreen('sessionScreen');
+  } else {
+    showScreen('breathScreen');
+    setupBreathGate(proto);
+  }
+}
+
+// ── SCREEN MANAGEMENT ─────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════
+// BREATHWORK GATE (pre-session)
+// ═══════════════════════════════════════════════
+
+function setupBreathGate(protoKey) {
+  currentProto = PROTOCOLS[protoKey] || PROTOCOLS.calm;
+  const orb = document.getElementById('breathOrb');
+  orb.className = 'orb ' + currentProto.color;
+
+  document.getElementById('breathCue').textContent = 'Settle in';
+  document.getElementById('breathPhaseLabel').textContent =
+    currentProto.name + ' — ' + currentProto.rounds + ' rounds before your session';
+  document.getElementById('breathStartBtn').style.display = 'block';
+
+  // Show skip after day 7 (via URL param skip_allowed)
+  if (P.get('skip_allowed') === '1') {
+    document.getElementById('skipBreathLink').style.display = 'block';
+  }
+}
+
+function startBreathing() {
+  document.getElementById('breathStartBtn').style.display = 'none';
+  isBreathing = true;
+  breathRound = 0;
+  breathPhaseIdx = 0;
+
+  // Speak intro on button tap — this gesture unlocks Web Speech API
+  const protoKey = currentProto === PROTOCOLS.calm ? 'calm'
+    : currentProto === PROTOCOLS.focus ? 'focus' : 'reset';
+  V.speak(V.INTROS[protoKey], { rate: 0.8, onEnd: () => runBreathPhase() });
+}
+
+function runBreathPhase() {
+  if (!isBreathing) return;
+
+  const phases = currentProto.phases;
+  const rounds = currentProto.rounds;
+  const protoKey = currentProto === PROTOCOLS.calm ? 'calm'
+    : currentProto === PROTOCOLS.focus ? 'focus' : 'reset';
+
+  if (breathRound >= rounds) {
+    breathingDone = true;
+    finishBreathGate();
+    return;
+  }
+
+  // Update round dots
+  for (let i = 0; i < 3; i++) {
+    const dot = document.getElementById('rd'+i);
+    if (!dot) continue;
+    if (i < breathRound) dot.className = 'round-dot done';
+    else if (i === breathRound) dot.className = 'round-dot active';
+    else dot.className = 'round-dot';
+  }
+
+  const phase = phases[breathPhaseIdx];
+  const orb = document.getElementById('breathOrb');
+
+  document.documentElement.style.setProperty('--inhale-dur', phase.dur + 's');
+  document.documentElement.style.setProperty('--exhale-dur', phase.dur + 's');
+  document.documentElement.style.setProperty('--hold-dur', phase.dur + 's');
+  document.documentElement.style.setProperty('--hold2-dur', phase.dur + 's');
+
+  orb.className = 'orb ' + currentProto.color + ' ' + phase.type;
+
+  document.getElementById('breathCue').textContent = phase.cue;
+  document.getElementById('breathPhaseLabel').textContent = phase.name;
+
+  // Speak round announcement at start of each round, phase cue otherwise
+  if (breathPhaseIdx === 0) {
+    const roundCues = V.ROUND_CUES[protoKey] || [];
+    const roundText = roundCues[breathRound] || `Round ${breathRound + 1}`;
+    V.speak(roundText, { rate: 0.85 });
+    setTimeout(() => V.speak(phase.cue, { rate: 0.78 }), 1200);
+  } else {
+    V.speak(phase.cue, { rate: 0.78 });
+  }
+
+  // Countdown
+  let count = phase.dur;
+  document.getElementById('breathCounter').textContent = count;
+  clearInterval(breathInterval);
+  breathInterval = setInterval(() => {
+    count--;
+    document.getElementById('breathCounter').textContent = count > 0 ? count : '';
+    if (count <= 0) {
+      clearInterval(breathInterval);
+      breathPhaseIdx++;
+      if (breathPhaseIdx >= phases.length) {
+        breathPhaseIdx = 0;
+        breathRound++;
+      }
+      setTimeout(runBreathPhase, 500);
+    }
+  }, 1000);
+}
+
+function finishBreathGate() {
+  clearInterval(breathInterval);
+  const orb = document.getElementById('breathOrb');
+  orb.className = 'orb ' + currentProto.color;
+  document.getElementById('breathCue').textContent = 'Well done';
+  document.getElementById('breathCounter').textContent = '';
+  document.getElementById('breathPhaseLabel').textContent = 'Your nervous system is ready';
+
+  for (let i = 0; i < 3; i++) {
+    const dot = document.getElementById('rd'+i);
+    if (dot) dot.className = 'round-dot done';
+  }
+
+  const protoKey = currentProto === PROTOCOLS.calm ? 'calm'
+    : currentProto === PROTOCOLS.focus ? 'focus' : 'reset';
+  V.speak(V.COMPLETE[protoKey], { rate: 0.78 });
+
+  setTimeout(() => showScreen('sessionScreen'), 2200);
+}
+
+function skipToSession() {
+  clearInterval(breathInterval);
+  showScreen('sessionScreen');
+}
+
+// ═══════════════════════════════════════════════
+// SESSION PLAYER
+// ═══════════════════════════════════════════════
+
+function togglePlay() {
+  if (isPlaying) pauseSession();
+  else startSession();
+}
+
+function startSession() {
+  isPlaying = true;
+  midpointSpoken = false;
+  finalMinuteSpoken = false;
+  document.getElementById('playIcon').innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+  document.getElementById('sessionOrb').className = 'orb playing';
+  document.getElementById('sessionStateLabel').textContent = 'SESSION ACTIVE';
+  document.getElementById('waveform').classList.add('playing-state');
+
+  startBinaural(FREQ_KEY);
+  timerInterval = setInterval(tickTimer, 1000);
+  affirmInterval = setInterval(cycleAffirmation, 14000);
+  cycleAffirmation();
+
+  // Speak session open cue
+  V.speak(V.SESSION_OPEN[FREQ_KEY] || V.SESSION_OPEN.theta, { rate: 0.78, delay: 800 });
+}
+
+function pauseSession() {
+  isPlaying = false;
+  document.getElementById('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+  document.getElementById('sessionOrb').className = 'orb';
+  document.getElementById('sessionStateLabel').textContent = 'PAUSED';
+  document.getElementById('waveform').classList.remove('playing-state');
+  stopBinaural();
+  clearInterval(timerInterval);
+  clearInterval(affirmInterval);
+  V.stop();
+}
+
+function resetSession() {
+  pauseSession();
+  elapsed = 0;
+  midpointSpoken = false;
+  finalMinuteSpoken = false;
+  updateTimerDisplay();
+  updateArc(0);
+  document.getElementById('sessionStateLabel').textContent = 'READY';
+  document.getElementById('reflectionSection').style.display = 'none';
+}
+
+function endSession() {
+  pauseSession();
+  document.getElementById('sessionStateLabel').textContent = 'SESSION COMPLETE';
+  document.getElementById('reflectionSection').style.display = 'block';
+
+  const rq = P.get('rq');
+  if (rq) document.getElementById('reflectionQ').textContent = decodeURIComponent(rq);
+
+  // Speak close + reflection question
+  const reflText = document.getElementById('reflectionQ').textContent;
+  const closeCue = V.CLOSE[Math.floor(Math.random() * V.CLOSE.length)];
+  V.speak(closeCue, {
+    rate: 0.76,
+    onEnd: () => {
+      if (reflText) setTimeout(() => V.speak(reflText, { rate: 0.74 }), 1800);
+    }
+  });
+}
+
+// Milestone flags
+let midpointSpoken = false;
+let finalMinuteSpoken = false;
+
+function tickTimer() {
+  elapsed++;
+  updateTimerDisplay();
+  updateArc(elapsed / sessionDuration);
+
+  // Midpoint cue
+  const half = Math.floor(sessionDuration / 2);
+  if (!midpointSpoken && elapsed >= half && elapsed <= half + 2) {
+    midpointSpoken = true;
+    V.speak(V.MIDPOINT[Math.floor(Math.random() * V.MIDPOINT.length)], { rate: 0.80 });
+  }
+
+  // Final minute cue
+  const remaining = sessionDuration - elapsed;
+  if (!finalMinuteSpoken && remaining <= 60 && remaining > 57) {
+    finalMinuteSpoken = true;
+    V.speak(V.FINAL_MIN[Math.floor(Math.random() * V.FINAL_MIN.length)], { rate: 0.82 });
+  }
+
+  if (elapsed >= sessionDuration) endSession();
+}
+
+function skipForward() {
+  elapsed = Math.min(elapsed + 15, sessionDuration);
+  updateTimerDisplay();
+  updateArc(elapsed / sessionDuration);
+}
+
+function updateTimerDisplay() {
+  const rem = sessionDuration - elapsed;
+  const m = String(Math.floor(rem/60)).padStart(2,'0');
+  const s = String(rem%60).padStart(2,'0');
+  document.getElementById('timerDisplay').textContent = m+':'+s;
+}
+
+function updateArc(fraction) {
+  const fill = document.querySelector('.arc-fill');
+  if (fill) fill.style.strokeDashoffset = 204 * (1 - fraction);
+}
+
+function setDuration(mins) {
+  if (isPlaying) return;
+  sessionDuration = mins * 60;
+  elapsed = 0;
+  updateTimerDisplay();
+  document.querySelectorAll('.dur-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.textContent) === mins);
+  });
+}
+
+function setVolume(val) {
+  if (gainNode) gainNode.gain.value = val/100;
+  document.getElementById('volDisplay').textContent = val;
+  updateVolumeSlider(val);
+}
+
+function updateVolumeSlider(val) {
+  const s = document.getElementById('volSlider');
+  if (s) s.style.setProperty('--val', val+'%');
+}
+
+// ── Affirmations ───────────────────────────────
+function showAffirmation(text) {
+  const el = document.getElementById('affirmText');
+  el.classList.remove('visible');
+  setTimeout(() => {
+    el.textContent = text;
+    el.classList.add('visible');
+  }, 400);
+}
+
+function cycleAffirmation() {
+  const list = AFFIRMATIONS.length ? AFFIRMATIONS : (DEFAULT_AFFIRMATIONS[FREQ_KEY] || DEFAULT_AFFIRMATIONS.theta);
+  const text = list[affirmIdx % list.length];
+  showAffirmation(text);
+  // Speak affirmation with a gentle delay after visual appears
+  V.speak(text, { rate: 0.74, pitch: 0.92, delay: 1000 });
+  affirmIdx++;
+}
+
+// ── Audio Engine ───────────────────────────────
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  merger = audioCtx.createChannelMerger(2);
+  gainNode = audioCtx.createGain();
+  gainNode.gain.value = parseInt(document.getElementById('volSlider').value) / 100;
+  merger.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+}
+
+function startBinaural(freqKey) {
+  initAudio();
+  const cfg = FREQS[freqKey] || FREQS.theta;
+  leftOsc = audioCtx.createOscillator();
+  leftGain = audioCtx.createGain();
+  leftOsc.frequency.value = cfg.base;
+  leftOsc.type = 'sine';
+  leftGain.gain.value = 1;
+  leftOsc.connect(leftGain);
+  leftGain.connect(merger, 0, 0);
+  leftOsc.start();
+
+  rightOsc = audioCtx.createOscillator();
+  rightGain = audioCtx.createGain();
+  rightOsc.frequency.value = cfg.base + cfg.beat;
+  rightOsc.type = 'sine';
+  rightGain.gain.value = 1;
+  rightOsc.connect(rightGain);
+  rightGain.connect(merger, 0, 1);
+  rightOsc.start();
+}
+
+function stopBinaural() {
+  try { if(leftOsc)  { leftOsc.stop();  leftOsc=null; } } catch(e){}
+  try { if(rightOsc) { rightOsc.stop(); rightOsc=null; } } catch(e){}
+}
+
+// ═══════════════════════════════════════════════
+// STANDALONE BREATHWORK
+// ═══════════════════════════════════════════════
+
+let selectedProtocolKey = 'calm';
+
+function selectProtocol(key) {
+  selectedProtocolKey = key;
+  document.querySelectorAll('.protocol-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('pc-'+key).classList.add('active');
+
+  const proto = PROTOCOLS[key];
+  document.getElementById('bwOrb').className = 'orb ' + proto.color;
+  document.getElementById('bwCue').textContent = proto.name;
+  document.getElementById('bwPhaseLabel').textContent = proto.desc;
+  document.getElementById('bwCounter').textContent = '';
+
+  // Reset dots
+  const total = proto.rounds > 3 ? 5 : 3;
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('bwr'+i);
+    if (d) d.style.display = i < total ? 'block' : 'none';
+    if (d) d.className = 'round-dot';
+  }
+
+  stopStandaloneBreathing();
+}
+
+function startStandaloneBreathing() {
+  stopStandaloneBreathing();
+  const proto = PROTOCOLS[selectedProtocolKey];
+  bwRound = 0;
+  bwPhaseIdx = 0;
+  bwRoundsTotal = proto.rounds;
+  document.getElementById('bwStartBtn').textContent = 'Pause';
+  document.getElementById('bwStartBtn').onclick = pauseStandaloneBreathing;
+  // Speak intro on tap — this gesture unlocks Web Speech on iOS
+  V.speak(V.INTROS[selectedProtocolKey], { rate: 0.80, onEnd: () => runBwPhase() });
+}
+
+let bwPaused = false;
+
+function pauseStandaloneBreathing() {
+  bwPaused = true;
+  clearInterval(bwInterval);
+  V.stop();
+  document.getElementById('bwStartBtn').textContent = 'Resume';
+  document.getElementById('bwStartBtn').onclick = resumeStandaloneBreathing;
+}
+
+function resumeStandaloneBreathing() {
+  bwPaused = false;
+  document.getElementById('bwStartBtn').textContent = 'Pause';
+  document.getElementById('bwStartBtn').onclick = pauseStandaloneBreathing;
+  runBwPhase();
+}
+
+function stopStandaloneBreathing() {
+  clearInterval(bwInterval);
+  bwPaused = false;
+  V.stop();
+  document.getElementById('bwStartBtn').textContent = 'Begin';
+  document.getElementById('bwStartBtn').onclick = startStandaloneBreathing;
+
+  const proto = PROTOCOLS[selectedProtocolKey];
+  document.getElementById('bwOrb').className = 'orb ' + proto.color;
+  document.getElementById('bwCue').textContent = proto.name;
+  document.getElementById('bwPhaseLabel').textContent = proto.desc;
+  document.getElementById('bwCounter').textContent = '';
+
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('bwr'+i);
+    if (d) d.className = 'round-dot';
+  }
+}
+
+function runBwPhase() {
+  if (bwPaused) return;
+  const proto = PROTOCOLS[selectedProtocolKey];
+  const phases = proto.phases;
+
+  if (bwRound >= bwRoundsTotal) {
+    document.getElementById('bwCue').textContent = 'Complete';
+    document.getElementById('bwCounter').textContent = '';
+    document.getElementById('bwPhaseLabel').textContent = 'Well done';
+    for (let i = 0; i < bwRoundsTotal; i++) {
+      const d = document.getElementById('bwr'+i);
+      if (d) d.className = 'round-dot done';
+    }
+    document.getElementById('bwStartBtn').textContent = 'Again';
+    document.getElementById('bwStartBtn').onclick = startStandaloneBreathing;
+    V.speak('Complete. Notice the stillness in your body.', { rate: 0.78 });
+    return;
+  }
+
+  // Update dots
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('bwr'+i);
+    if (!d) continue;
+    if (i < bwRound) d.className = 'round-dot done';
+    else if (i === bwRound) d.className = 'round-dot active';
+    else d.className = 'round-dot';
+  }
+
+  const phase = phases[bwPhaseIdx];
+  const orb = document.getElementById('bwOrb');
+
+  document.documentElement.style.setProperty('--inhale-dur', phase.dur+'s');
+  document.documentElement.style.setProperty('--exhale-dur', phase.dur+'s');
+  document.documentElement.style.setProperty('--hold-dur',   phase.dur+'s');
+  document.documentElement.style.setProperty('--hold2-dur',  phase.dur+'s');
+
+  orb.className = 'orb ' + proto.color + ' ' + phase.type;
+  document.getElementById('bwCue').textContent = phase.cue;
+  document.getElementById('bwPhaseLabel').textContent = phase.name;
+
+  // Voice cues
+  if (bwPhaseIdx === 0) {
+    const roundCues = V.ROUND_CUES[selectedProtocolKey] || [];
+    const rt = roundCues[bwRound] || `Round ${bwRound + 1}`;
+    V.speak(rt, { rate: 0.85 });
+    setTimeout(() => V.speak(phase.cue, { rate: 0.78 }), 1200);
+  } else {
+    V.speak(phase.cue, { rate: 0.78 });
+  }
+
+  let count = phase.dur;
+  document.getElementById('bwCounter').textContent = count;
+  clearInterval(bwInterval);
+  bwInterval = setInterval(() => {
+    if (bwPaused) return;
+    count--;
+    document.getElementById('bwCounter').textContent = count > 0 ? count : '';
+    if (count <= 0) {
+      clearInterval(bwInterval);
+      bwPhaseIdx++;
+      if (bwPhaseIdx >= phases.length) {
+        bwPhaseIdx = 0;
+        bwRound++;
+      }
+      setTimeout(runBwPhase, 500);
+    }
+  }, 1000);
+}
+
+// ── Volume slider CSS var ──────────────────────
+document.getElementById('volSlider').addEventListener('input', function() {
+  this.style.setProperty('--val', this.value+'%');
+});
+
+// ═══════════════════════════════════════════════
+// V — VOICE GUIDANCE ENGINE
+// Web Speech API. Directly wired. No patching.
+// Activated on first user gesture (button tap).
+// ═══════════════════════════════════════════════
+
+const V = (() => {
+  const synth = window.speechSynthesis;
+  let on = true;
+  let voice = null;
+  let rate = 0.82;
+  let voices = [];
+
+  // Load voices
+  function loadVoices() {
+    voices = synth ? synth.getVoices() : [];
+    if (voices.length) pickVoice();
+  }
+  if (synth) {
+    loadVoices();
+    synth.onvoiceschanged = loadVoices;
+  }
+
+  function pickVoice() {
+    const prefer = ['Samantha','Karen','Moira','Tessa',
+      'Google UK English Female','Microsoft Zira',
+      'en-GB','en-AU','en-US'];
+    for (const p of prefer) {
+      const v = voices.find(v => v.name.includes(p) || v.lang.includes(p));
+      if (v) { voice = v; return; }
+    }
+    voice = voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
+  }
+
+  function speak(text, opts = {}) {
+    if (!on || !synth || !text) return;
+    try {
+      synth.cancel();
+      const go = () => {
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate   = opts.rate  || rate;
+        u.pitch  = opts.pitch || 0.95;
+        u.volume = opts.volume || 0.92;
+        if (voice) u.voice = voice;
+        if (opts.onEnd) u.onend = opts.onEnd;
+        synth.speak(u);
+      };
+      opts.delay ? setTimeout(go, opts.delay) : go();
+    } catch(e) { console.warn('Speech:', e); }
+  }
+
+  function stop() { if (synth) synth.cancel(); }
+
+  function toggle() {
+    on = !on;
+    if (!on) stop();
+    const btn = document.getElementById('voiceToggleBtn');
+    if (btn) btn.textContent = on ? '🔊' : '🔇';
+    return on;
+  }
+
+  function setRate(r) { rate = r; }
+  function isEnabled() { return on; }
+
+  function populateSelect(el) {
+    if (!el) return;
+    el.innerHTML = '';
+    voices.filter(v => v.lang.startsWith('en')).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = v.name;
+      if (v === voice) o.selected = true;
+      el.appendChild(o);
+    });
+  }
+
+  function selectByName(name) {
+    const v = voices.find(v => v.name === name);
+    if (v) voice = v;
+  }
+
+  // ── All cue scripts ──────────────────────────
+
+  const INTROS = {
+    calm:  "Before your session begins, we'll do three rounds of four-eight breathing. This activates your vagal brake and prepares your nervous system for the deeper work. Follow the orb.",
+    focus: "Before your session begins, four rounds of box breathing. This balances your nervous system and brings focused calm. Follow the orb.",
+    reset: "Emergency reset. Three physiological sighs. Double inhale through the nose. Long exhale through the mouth. Follow the orb.",
+  };
+
+  const ROUND_CUES = {
+    calm:  ["Round one. Breathe in through your nose.", "Round two. Stay with it.", "Final round."],
+    focus: ["Round one.", "Round two. Keep the rhythm.", "Round three.", "Final round."],
+    reset: ["First sigh.", "Second sigh.", "Final sigh."],
+  };
+
+  const COMPLETE = {
+    calm:  "Your nervous system is ready. Session beginning now. You can put your phone down.",
+    focus: "Balanced and clear. Session beginning now. Set your phone aside.",
+    reset: "Good. The acute response is clearing. Session beginning.",
+  };
+
+  const SESSION_OPEN = {
+    delta: "Your session is beginning. Allow yourself to soften completely. There is nothing to do here but receive.",
+    theta: "Your session is beginning. You can put your phone down. The work happens beneath thought. Let your mind go quiet.",
+    alpha: "Your session is beginning. Settle into relaxed alertness. Simply stay present.",
+    beta:  "Your session is beginning. Bring your full attention here. Everything else can wait.",
+    gamma: "Your session is beginning. You are rehearsing the version of yourself that is already real.",
+  };
+
+  const MIDPOINT = [
+    "Halfway through. You're doing well. Stay with it.",
+    "You're halfway there. Notice what has shifted since you began.",
+    "Midpoint. Your nervous system has been in this state long enough for real work to be happening.",
+  ];
+
+  const FINAL_MIN = [
+    "One minute remaining. Begin to bring your awareness back.",
+    "Almost there. One last minute.",
+    "Final minute. Stay present until the end.",
+  ];
+
+  const CLOSE = [
+    "Session complete. Take one slow breath before you move.",
+    "That's your session. Rest here for a moment before continuing with your day.",
+    "Complete. Notice how you feel — your body, your breath, the quality of your mind right now.",
+  ];
+
+  return {
+    speak, stop, toggle, setRate, isEnabled, populateSelect, selectByName,
+    INTROS, ROUND_CUES, COMPLETE, SESSION_OPEN, MIDPOINT, FINAL_MIN, CLOSE,
+  };
+})();
+
+// ── Voice UI ──────────────────────────────────
+
+function injectVoiceUI() {
+  const scrollBody = document.querySelector('#sessionScreen .scroll-body');
+  if (!scrollBody) return;
+
+  const bar = document.createElement('div');
+  bar.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;max-width:340px;margin-bottom:14px;flex-wrap:wrap;';
+  bar.innerHTML = `
+    <button id="voiceToggleBtn"
+      onclick="V.toggle()"
+      style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);
+      border-radius:100px;padding:6px 14px;cursor:pointer;font-size:14px;transition:all .2s;">🔊</button>
+    <span style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;color:var(--muted);">VOICE</span>
+    <select id="voiceSelect" onchange="V.selectByName(this.value)"
+      style="margin-left:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+      border-radius:6px;padding:4px 8px;color:var(--muted);font-size:10px;
+      font-family:'DM Mono',monospace;cursor:pointer;max-width:130px;"></select>
+    <div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:4px;">
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">PACE</span>
+      <input type="range" min="60" max="100" value="82"
+        style="flex:1;--val:55%"
+        oninput="V.setRate(this.value/100);this.style.setProperty('--val',(this.value-60)/40*100+'%')"
+        title="Voice pace">
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);">FAST</span>
+    </div>
+  `;
+
+  const affBox = scrollBody.querySelector('.affirmation-box');
+  if (affBox) scrollBody.insertBefore(bar, affBox);
+  else scrollBody.appendChild(bar);
+
+  // Populate voice selector
+  const populateSel = () => V.populateSelect(document.getElementById('voiceSelect'));
+  setTimeout(populateSel, 600);
+  setTimeout(populateSel, 2500);
+}
+
+window.addEventListener('load', () => setTimeout(injectVoiceUI, 400));
+</script>
+</body>
+</html>
