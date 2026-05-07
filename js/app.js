@@ -1,10 +1,6 @@
-// ============================================================
 // app.js — entry point, URL params, loading screen, routing
-// Load order: config → voice → audio → breath → session → app
-// ============================================================
 'use strict';
 
-// ── URL params ────────────────────────────────────────────
 const P = new URLSearchParams(location.search);
 
 window.APP = {
@@ -17,6 +13,17 @@ window.APP = {
   rq:          P.get('rq')
                ? decodeURIComponent(P.get('rq'))
                : 'What did you notice in your body during this session?',
+  // Expected audio keys — bot passes these so player knows what to wait for
+  // Format: akey0=aff_abc123, akey1=aff_def456
+  audioKeys: (() => {
+    const keys = [];
+    for (let i = 0; i < 5; i++) {
+      const k = P.get('akey' + i);
+      if (k) keys.push(k);
+    }
+    return keys;
+  })(),
+  // Already-built audio URLs (present when bot sends final URL)
   affs: (() => {
     const list = [];
     for (let i = 0; i < 5; i++) {
@@ -27,104 +34,143 @@ window.APP = {
     }
     return list;
   })(),
-  // GitHub Pages base — same origin, no trailing slash
   audioBase: (() => {
-    const loc = window.location;
+    const loc  = window.location;
     const path = loc.pathname.replace(/\/index\.html$/, '').replace(/\/$/, '');
     return loc.origin + path;
   })(),
 };
 
-// ── Global screen switcher (used by breath.js, session.js) ─
+// Global screen switcher
 function APP_showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(id);
   if (el) el.classList.add('active');
 }
 
-// ── Init on load ──────────────────────────────────────────
+function _setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+// Init
 window.addEventListener('load', () => {
   const app = window.APP;
 
-  // Show loading screen immediately
-  APP_showScreen('loadScreen');
-
-  // Animate loading status text
-  const statuses = ['Loading audio...', 'Preparing your session...', 'Almost ready...'];
-  let si = 0;
-  const statusIv = setInterval(() => {
-    si++;
-    const el = document.getElementById('loadStatus');
-    if (el && si < statuses.length) el.textContent = statuses[si];
-  }, 1500);
-
-  // Init session display (doesn't need audio)
+  // Init session display
   const freq = FREQS[app.freqKey] || FREQS.theta;
   _setText('badgeTxt', freq.name.toUpperCase() + ' · ' + freq.hz + ' · ' + freq.label);
   _setText('sTitle',   app.title);
   _setText('reflectQ', app.rq);
   Session.init(app.durMins, app.freqKey, app.affs, app.rewirePhase);
 
-  // Wire volume slider
+  // Wire volume
   const volR = document.getElementById('volR');
   if (volR) {
     volR.addEventListener('input', function() {
       const v = parseInt(this.value);
-      Audio.setVolume(v);
-      Voice.setVol(v);
+      Audio.setVolume(v); Voice.setVol(v);
       _setText('volNum', v);
       this.style.setProperty('--pct', v + '%');
     });
     volR.style.setProperty('--pct', '70%');
   }
 
-  // Init Voice — loads manifest — then route
-  // Enforce minimum 2s on loading screen so user actually sees it
-  const loadStart = Date.now();
-  Voice.init(app.audioBase, () => {
-    clearInterval(statusIv);
-    _setText('loadStatus', 'Ready ✓');
-    const elapsed = Date.now() - loadStart;
-    const remaining = Math.max(0, 2000 - elapsed);
-    setTimeout(() => _route(), remaining + 600);
-  });
+  const hasAudio    = app.affs.some(a => a.type === 'audio');
+  const hasAudioKeys = app.audioKeys.length > 0;
 
-  // Hard safety net — proceed after 10s regardless
-  setTimeout(() => {
-    if (document.getElementById('loadScreen').classList.contains('active')) {
-      clearInterval(statusIv);
+  if (hasAudio) {
+    // Audio already built — load manifest silently, go straight to breath screen
+    Voice.init(app.audioBase, null);
+    _routeToBreath();
+    return;
+  }
+
+  // Show loading screen
+  APP_showScreen('loadScreen');
+
+  if (hasAudioKeys) {
+    // Bot is building audio — poll GitHub until all files exist
+    _setText('loadStatus', 'Setting up your session...');
+    Voice.init(app.audioBase, () => {
+      _pollForAudio(app.audioKeys, app.audioBase, () => {
+        // All audio files are ready — build affs list and proceed
+        app.affs = app.audioKeys.map(k => ({
+          type: 'audio',
+          url:  `${app.audioBase}/audio/${k}`
+        }));
+        Session.init(app.durMins, app.freqKey, app.affs, app.rewirePhase);
+        _routeToBreath();
+      });
+    });
+  } else {
+    // No audio keys — just load manifest and go
+    const statuses = ['Loading...', 'Preparing...', 'Almost ready...'];
+    let si = 0;
+    const iv = setInterval(() => {
+      si++;
+      const el = document.getElementById('loadStatus');
+      if (el && si < statuses.length) el.textContent = statuses[si];
+    }, 1500);
+
+    const t0 = Date.now();
+    Voice.init(app.audioBase, () => {
+      clearInterval(iv);
       _setText('loadStatus', 'Ready ✓');
-      setTimeout(() => _route(), 400);
-    }
-  }, 10000);
+      const wait = Math.max(0, 2000 - (Date.now() - t0));
+      setTimeout(_routeToBreath, wait + 500);
+    });
+
+    setTimeout(() => {
+      if (document.getElementById('loadScreen').classList.contains('active')) {
+        clearInterval(iv);
+        _routeToBreath();
+      }
+    }, 10000);
+  }
 });
 
-// ── Route to correct first screen ─────────────────────────
-function _route() {
-  const app = window.APP;
-  const proto = (FREQS[app.freqKey] || FREQS.theta).proto;
+// Poll GitHub for audio files every 2 seconds until all exist
+function _pollForAudio(keys, base, onReady) {
+  let attempts = 0;
+  const maxAttempts = 15; // 30 second max wait
 
-  if (app.mode === 'breathe') {
-    APP_showScreen('bwScreen');
-    return;
-  }
-  if (app.mode === 'reset') {
-    BreathGate.setProto('reset');
-    APP_showScreen('bScreen');
-    return;
-  }
-  if (app.skipBreath) {
-    APP_showScreen('sScreen');
-    return;
-  }
+  const check = async () => {
+    attempts++;
+    try {
+      const checks = await Promise.all(
+        keys.map(k =>
+          fetch(`${base}/audio/${k}`, { method: 'HEAD' })
+            .then(r => r.ok)
+            .catch(() => false)
+        )
+      );
+      const allReady = checks.every(Boolean);
+      if (allReady) {
+        onReady();
+      } else if (attempts < maxAttempts) {
+        setTimeout(check, 2000);
+      } else {
+        // Timeout — proceed without audio
+        onReady();
+      }
+    } catch(e) {
+      if (attempts < maxAttempts) setTimeout(check, 2000);
+      else onReady();
+    }
+  };
 
-  // Default — breathwork gate
-  BreathGate.setProto(proto);
-  APP_showScreen('bScreen');
+  check();
 }
 
-// ── Shared text helper (also used by breath.js / session.js) ─
-function _setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
+function _routeToBreath() {
+  const app   = window.APP;
+  const proto = (FREQS[app.freqKey] || FREQS.theta).proto;
+
+  if (app.mode === 'breathe') { APP_showScreen('bwScreen'); return; }
+  if (app.mode === 'reset')   { BreathGate.setProto('reset'); APP_showScreen('bScreen'); return; }
+  if (app.skipBreath)         { APP_showScreen('sScreen'); return; }
+
+  BreathGate.setProto(proto);
+  APP_showScreen('bScreen');
 }
